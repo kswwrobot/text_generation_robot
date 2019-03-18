@@ -9,7 +9,6 @@ from argparse import ArgumentParser
 import os
 
 parser = ArgumentParser()
-#parser.add_argument("resume", help="positional argument 1")
 parser.add_argument("-l", "--load", help="optional argument", dest="filename", default="default")
 args = parser.parse_args()
 checkpoint_dir = "checkpoints/"
@@ -80,23 +79,15 @@ class LSTM(nn.Module):
 
     def __init__(self, embedding_dim, hidden_dim, vocab_size):
         super(LSTM, self).__init__()
-        print("embedding_dim, hidden_dim, vocab_size", embedding_dim, hidden_dim, vocab_size)
         self.hidden_dim = hidden_dim
-        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-        # The LSTM takes word embeddings as inputs, and outputs hidden states
-        # with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-
-        # The linear layer that maps from hidden state space to tag space
+        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)        
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim)       
         self.linear = nn.Linear(hidden_dim, vocab_size)
 
     def forward(self, sentence):
-        #print("sentence", sentence)
-        embeds = self.word_embeddings(sentence)
-        #print('embeds', embeds.shape)
-        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
-        #print('lstm input', embeds.view(len(sentence), 1, -1))
-        #print('lstm', lstm_out.shape)
+        
+        embeds = self.word_embeddings(sentence)        
+        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))        
         vocab_space = self.linear(lstm_out.view(len(sentence), -1))
         vocab_scores = F.log_softmax(vocab_space, dim=1)
         return vocab_scores
@@ -184,19 +175,9 @@ if args.filename:
         print("=> no checkpoint found at '{}'".format(args.filename))
         args.start_epoch = 0
 
-# See what the scores are before training
-# Note that element i,j of the output is the score for tag j for word i.
-# Here we don't need to train, so the code is wrapped in torch.no_grad()
-
 with torch.no_grad():
     inputs = prepare_sequence(lines[0], w2i)
     tag_scores = model(inputs)
-    #print(tag_scores)
-
-#sentence_len_fix = 10
-#start_idx = 0
-#sentence_len = sentence_len_fix
-#end_idx = start_idx + sentence_len
 
 sentence_len = 10
 start_idx = np.random.randint(len(corpus))
@@ -206,10 +187,8 @@ if args.start_epoch + 1 >= end_epoch:
     print("args.start_epoch + 1 >= end_epoch")
     raise Exception
 
-for epoch in range(args.start_epoch + 1, end_epoch):  # again, normally you would NOT do 300 epochs, it is toy data
-    #print(epoch)    
-    # Step 1. Remember that Pytorch accumulates gradients.
-    # We need to clear them out before each instance
+for epoch in range(args.start_epoch + 1, end_epoch):
+    
     if end_idx+1 > len(corpus):
         sentence_len = 10
         start_idx = np.random.randint(len(corpus))
@@ -218,18 +197,11 @@ for epoch in range(args.start_epoch + 1, end_epoch):  # again, normally you woul
          
     model.zero_grad()
 
-    # Step 2. Get our inputs ready for the network, that is, turn them into
-    # Tensors of word indices.
     
     sentence_in = prepare_sequence(corpus[start_idx:end_idx], w2i)
-    #print('sentence_in', sentence_in)
     targets = prepare_sequence(corpus[start_idx+1:end_idx+1], w2i)
-    
-    # Step 3. Run our forward pass.
     vocab_scores = model(sentence_in)
-
-    # Step 4. Compute the loss, gradients, and update the parameters by
-    #  calling optimizer.step()
+    
     loss = loss_function(vocab_scores, targets)
     loss.backward()
     optimizer.step()
@@ -247,8 +219,4 @@ for epoch in range(args.start_epoch + 1, end_epoch):  # again, normally you woul
             'w2i' : w2i,
             'i2w' : i2w
         }, False, "checkpoint" + str(epoch) + ".pth.tar")
-
-# See what the scores are after training
-
-
 
