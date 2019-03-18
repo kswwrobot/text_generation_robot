@@ -26,7 +26,7 @@ def test(start_idx, end_idx, sentence_len):
         sentence = ""
         for w in input_current:
             sentence += w
-        sample_length = 200
+        sample_length = 100
         
         input_current = prepare_sequence(input_current, w2i)   
         
@@ -47,7 +47,7 @@ def test(start_idx, end_idx, sentence_len):
         rand_sentence = ""
         for w in input_current:
             rand_sentence += w
-        random_sample_length = 1000
+        random_sample_length = 100
         
         input_current = prepare_sequence(input_current, w2i)
         
@@ -67,11 +67,11 @@ def test(start_idx, end_idx, sentence_len):
             rand_sentence += recover_sequence([indices.tolist()], i2w)[0]
             input_current = prepare_sequence(recover_sequence(input_current.tolist(), i2w), w2i)
 
-        print()
+        print('------------------------------------------------')
         print("pred:", sentence)
-        print()
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
         print("real:", ''.join(corpus[start_idx:start_idx+sample_length+1]))
-        print()
+        print('================================================')
         print("rand:", rand_sentence)
         
 
@@ -107,9 +107,9 @@ lines = []
 corpus = []
 with open("train.txt", "r") as f:
     for line in f:
-        line = line.strip()
-        if line == '':
-            continue
+        #line = line.strip()
+        #if line == '':
+        #    continue
         seg_list = jieba.cut(line)
         
         seg_list_list = []
@@ -210,6 +210,9 @@ for epoch in range(args.start_epoch + 1, end_epoch):
     end_idx = start_idx + sentence_len
     
     if epoch % 1000 == 0:
+        print('epoch:', epoch)
+        test(start_idx, end_idx, sentence_len)
+    if epoch % 100000 == 0:
         print('epoch:', epoch)
         test(start_idx, end_idx, sentence_len)
         save_checkpoint({
